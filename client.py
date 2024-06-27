@@ -10,7 +10,7 @@ def main():
     except Exception as e:
         return print(f'\nNão foi possível se conectar ao servidor! Erro: {e}\n')
 
-    username = input('Usuário> ')
+    username = input('Digite o nome de usuário: ')
     client.send(username.encode('utf-8'))
     print('\nConectado')
 
@@ -44,3 +44,4 @@ def send_messages(client, username):
 
 if __name__ == "__main__":
     main()
+
