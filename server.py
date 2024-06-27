@@ -1,52 +1,65 @@
 import threading
 import socket
 
-# Lista de clientes conectados ao servidor
 clients = []
+usernames = {}
 
-# Função para lidar com as mensagens de um cliente
-def handle_client(client):
-  while True:
-      try:
-          msg = client.recv(2048)
-          broadcast(msg, client)
-      except:
-          remove_client(client)
-          break
+def handle_client(client, username):
+    while True:
+        try:
+            msg = client.recv(2048)
+            if not msg:
+                remove_client(client, username)
+                break
+            broadcast(msg, username)
+        except:
+            remove_client(client, username)
+            break
 
-# Função para transmitir mensagens para todos os clientes
 def broadcast(msg, sender):
-  for client in clients:
-      if client != sender:
-          try:
-              client.send(msg)
-          except:
-              remove_client(client)
+    for client in clients:
+        if usernames[client] != sender:
+            try:
+                client.send(msg)
+            except:
+                remove_client(client, usernames[client])
 
-# Função para remover um cliente da lista
-def remove_client(client):
-  clients.remove(client)
+def remove_client(client, username):
+    if client in clients:
+        clients.remove(client)
+        client.close()
+        broadcast(f'{username} saiu do chat.'.encode('utf-8'), 'Servidor')
 
-# Função principal
 def main():
-  server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address = ('localhost', 7777)
+    
+    print("Iniciou o servidor de bate-papo")
 
-  print("Iniciou o servidor de bate-papo")
+    try:
+        server.bind(server_address)
+        server.listen()
+    except Exception as e:
+        return print(f'\nNão foi possível iniciar o servidor! Erro: {e}\n')
 
-  try:
-      server.bind(("localhost", 7777))
-      server.listen()
-  except:
-      return print('\nNão foi possível iniciar o servidor!\n')
+    while True:
+        client, addr = server.accept()
+        print(f'Cliente conectado com sucesso. IP: {addr}')
+        
+        # Solicita o nome de usuário do cliente
+        client.send(' '.encode('utf-8'))
+        username = client.recv(2048).decode('utf-8')
+        
+        clients.append(client)
+        usernames[client] = username
+        
+        print(f'{username} está conectado conectado.')
 
-  while True:
-      client, addr = server.accept()
-      clients.append(client)
-      print(f'Cliente conectado com sucesso. IP: {addr}')
+        # Informa a todos os clientes sobre a nova conexão
+        broadcast(f'{username} entrou no chat.'.encode('utf-8'), 'Servidor')
 
-      # Inicia uma nova thread para lidar com as mensagens do cliente
-      thread = threading.Thread(target=handle_client, args=(client,))
-      thread.start()
+        thread = threading.Thread(target=handle_client, args=(client, username))
+        thread.start()
 
-# Executa o programa
-main()
+if __name__ == "__main__":
+    main()
