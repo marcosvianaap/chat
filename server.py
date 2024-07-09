@@ -90,3 +90,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+# hostname -I
+# ifconfig
+# ip addr show
